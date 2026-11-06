@@ -219,6 +219,26 @@ function setup() {
     window.preload();
 }
 
+function shuffleBalls() {
+    if (!balls || balls.length === 0) return;
+
+    var targets = balls.map(function(b) {
+        return { x: b.targetX, y: b.targetY };
+    });
+
+    for (var i = targets.length - 1; i > 0; i--) {
+        var j = rnd(i + 1);
+        var temp = targets[i];
+        targets[i] = targets[j];
+        targets[j] = temp;
+    }
+
+    for (var i = 0; i < balls.length; i++) {
+        balls[i].targetX = targets[i].x;
+        balls[i].targetY = targets[i].y;
+    }
+}
+
 function draw() {
 
 	switch(gameState) {
@@ -267,32 +287,34 @@ function draw() {
 
 		case GameState.INIT:
 
+			diameter = 32;
+			gap = 4;
+
 			cx=(canvas.width-word.length*(diameter+gap))/2+(diameter+gap)/2;
 			cy=canvas.height;
 
 			balls = [];
 			for (var i = 0; i < word.length; i++) {
-				balls.push(new Ball(word[i],i*(diameter+gap)+cx,cy-64-16,diameter));
-			}
-
-			boxes = [];
-			for (var i = 0; i < word.length; i++) {
-				boxes.push(new Box(i*(diameter+gap)+cx,cy-128,diameter));
+				balls.push(new Ball(word[i],i*(diameter+gap)+cx,cy-80,diameter-6));
 			}
 
 			pegs = [];
 			for (var i = 0; i < word.length; i++) {
-				boxes.push(new Peg(i*(diameter+gap)+cx,cy-64-16,diameter/2));
+				pegs.push(new Peg(i*(diameter+gap)+cx,cy-80,diameter/2-6));
 			}
 
+			boxes = [];
+			for (var i = 0; i < word.length; i++) {
+				boxes.push(new Box(i*(diameter+gap)+cx,cy-116,diameter));
+			}
 
 			buttons = [];
-			buttons.push(new Button(loadedAssets.circle,   30,cy-32-8-4,32,32));
-			buttons.push(new Button(loadedAssets.triangle, 80,cy-32-8-4,32,32));
-			buttons.push(new Button(loadedAssets.cross,   130,cy-32-8-4,32,32));
-			buttons.push(new Button(loadedAssets.square,  180,cy-32-8-4,32,32));
-												
-			gameState = GameState.PLAY;			
+			buttons.push(new Button(loadedAssets.circle,30,cy-44,32,32));
+			buttons.push(new Button(loadedAssets.triangle,80,cy-44,32,32));
+			buttons.push(new Button(loadedAssets.cross,130,cy-44,32,32));
+			buttons.push(new Button(loadedAssets.square,180,cy-44,32,32));
+
+			gameState = GameState.PLAY;
 			break;
 
 		case GameState.PLAY:
@@ -321,23 +343,23 @@ function draw() {
 				ball.draw();
 			}
 
-			for(var button of buttons) {
-			}
-
-			for(var button of buttons) {
+			for(var i = 0; i < buttons.length; i++) {
+				var button = buttons[i];
 				button.handleEvents(pointer);
 				button.draw();
 
-				if (button.state === ButtonState.DOWN) {
-
-			    }
+				if (button.isClicked) {
+					if (i === 0) { // Circle button index
+						shuffleBalls();
+					}
+				}
 			}
 
 		    frames++;
 
 		    break;
 
-		default: 
+		default:
 		    break;
 	}
 
@@ -431,4 +453,3 @@ var handler = new PointerHandler(canvas);
 
 window.setup();
 window.requestAnimationFrame(window.draw);
-

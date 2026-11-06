@@ -2,10 +2,20 @@ function Ball(letter, x, y, d) {
     this.letter = letter.toUpperCase();
     this.x = x;
     this.y = y;
+    this.targetX = x;
+    this.targetY = y;
     this.d = d;
 }
 
+Ball.prototype.update = function() {
+    // Smoothly interpolate current position toward target position
+    this.x += (this.targetX - this.x) * 0.2;
+    this.y += (this.targetY - this.y) * 0.2;
+};
+
 Ball.prototype.draw = function() {
+    this.update();
+
 	ctx.beginPath();
 	ctx.fillStyle = palette[10];
 	ctx.arc(this.x, this.y, this.d/2, 0, 2 * Math.PI);
@@ -24,8 +34,3 @@ Ball.prototype.draw = function() {
 	ctx.textBaseline="middle";
 	ctx.fillText(this.letter, this.x, this.y);
 }
-
-
-
-
-
