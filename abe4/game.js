@@ -267,10 +267,6 @@ function draw() {
 	                        word = randwords[rnd(randwords.length)].trim();
 	                    }
 	                }
-	                
-	                if (!word) {
-	                    word = "WHIRLWIND";
-	                }
 
 	                if (loadedAssets.wordlist && typeof loadedAssets.wordlist === 'string') {
 	                    wordlists = loadedAssets.wordlist.trim().split(/\r\n|\n|\r/);
@@ -287,7 +283,7 @@ function draw() {
 
 		case GameState.INIT:
 
-			diameter = 32;
+			diameter = 36;
 			gap = 4;
 
 			cx=(canvas.width-word.length*(diameter+gap))/2+(diameter+gap)/2;
@@ -305,7 +301,7 @@ function draw() {
 
 			boxes = [];
 			for (var i = 0; i < word.length; i++) {
-				boxes.push(new Box(i*(diameter+gap)+cx,cy-116,diameter));
+				boxes.push(new Box(i*(diameter+gap)+cx,cy-120,diameter));
 			}
 
 			buttons = [];
