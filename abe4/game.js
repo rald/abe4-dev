@@ -44,6 +44,7 @@ function Game(canvasId) {
 	this.currentBoxIndex=0;
 	this.ballFont=null;
 	this.lastBallIndexes=null;
+	this.subAnagrams=null;
 }
 
 Game.prototype.drawProgressBar=function(percent) {
@@ -128,6 +129,53 @@ Game.prototype.setup=function() {
     this.preload();
 }
 
+Game.cleanStr=function(str) {
+    return str.replace(/[\r\n]+/g, "").trim().toLowerCase();
+}
+
+// Generate character frequency histogram
+Game.getHistogram=function(str) {
+    const cleaned = Game.cleanStr(str);
+    const hist = {};
+    for (let char of cleaned) {
+        if (char >= 'a' && char <= 'z') {
+            hist[char] = (hist[char] || 0) + 1;
+        }
+    }
+    return hist;
+}
+
+// Check if subHist can be formed using letters from targetHist
+Game.isSubAnagram=function(subHist, targetHist) {
+    for (let char in subHist) {
+        if ((targetHist[char] || 0) < subHist[char]) {
+            return false;
+        }
+    }
+    return true;
+}
+
+// Function to find all sub-anagrams of length >= minLength
+Game.getSubAnagrams=function(word, wordlist, minLength = 3) {
+    const targetHist = Game.getHistogram(word);
+    const matches = wordlist.filter(w => {
+        const cleaned = Game.cleanStr(w);
+        if (cleaned.length < minLength) return false;
+        return Game.isSubAnagram(Game.getHistogram(cleaned), targetHist);
+    });
+
+    // Remove duplicates
+    const uniqueMatches = [...new Set(matches)];
+
+    // Sort by length descending, with randomized positions for words of the same length
+    return uniqueMatches.sort((a, b) => {
+        if (b.length !== a.length) {
+            return b.length - a.length; // Longer words come first
+        }
+        return Math.random() - 0.5; // Randomize order if lengths are identical
+    });
+}
+
 Game.prototype.shuffleBalls=function() {
 	var ballIndexes=[];
 	for(var i=0;i<this.balls.length;i++) {
@@ -192,6 +240,7 @@ Game.prototype.clearBall=function() {
 }
 
 Game.prototype.enterBalls=function() {
+		
 }
 
 Game.prototype.clearBalls=function() {
@@ -227,6 +276,7 @@ Game.prototype.draw=function() {
 
 	            var delayMs = 300; 
 	            if (now - this.preloadCompleteTime >= delayMs) {
+
 	                if (this.loadedAssets.randword && typeof this.loadedAssets.randword === 'string') {
 	                    this.randwords = this.loadedAssets.randword.trim().split(/\r\n|\n|\r/);
 	                    if (this.randwords.length > 0 && this.randwords[0] !== "") {
@@ -237,6 +287,10 @@ Game.prototype.draw=function() {
 	                if (this.loadedAssets.wordlist && typeof this.loadedAssets.wordlist === 'string') {
 	                    this.wordlists = this.loadedAssets.wordlist.trim().split(/\r\n|\n|\r/);
 	                }
+
+	                this.subAnagrams = Game.getSubAnagrams(this.word, this.wordlists, 3);
+
+	                console.table(this.subAnagrams);
 
 	                this.gameState = this.GameState.INIT;
 	            }
@@ -363,3 +417,4 @@ window.onload=function() {
 	    game.draw();
 	});
 }
+
