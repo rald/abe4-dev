@@ -1,5 +1,5 @@
 function rnd(x) {
-    return Math.floor(Math.random() * x);
+    return Math.floor(Math.random()*x);
 }
 
 function inrect(x, y, rx, ry, rw, rh) {

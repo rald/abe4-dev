@@ -41,6 +41,9 @@ function Game(canvasId) {
 	this.currentProgress = 0;
 	this.targetProgress = 0;
 	this.handler = new PointerHandler(canvas);
+	this.currentBoxIndex=0;
+	this.ballFont=null;
+	this.lastBallIndexes=null;
 }
 
 Game.prototype.drawProgressBar=function(percent) {
@@ -125,6 +128,81 @@ Game.prototype.setup=function() {
     this.preload();
 }
 
+Game.prototype.shuffleBalls=function() {
+	var ballIndexes=[];
+	for(var i=0;i<this.balls.length;i++) {
+		if(!this.balls[i].isUsed) {
+			ballIndexes.push(i);
+		}
+	}
+
+	var pegIndexes=[];
+	for(var i=0;i<this.pegs.length;i++) {
+		pegIndexes.push(i);
+	}
+
+	for(var i=pegIndexes.length-1;i>0;i--) {
+		var j=rnd(i+1);
+		var tmp=pegIndexes[i];
+		pegIndexes[i]=pegIndexes[j];
+		pegIndexes[j]=tmp;
+	}
+
+	for(var i=0;i<ballIndexes.length;i++) {		
+		this.balls[ballIndexes[i]].moveTo(
+			this.pegs[pegIndexes[i]].x,
+			this.pegs[pegIndexes[i]].y
+		);
+		this.balls[ballIndexes[i]].containerIndex=pegIndexes[i];		
+	}
+}
+
+Game.prototype.clearBall=function() {
+
+	var usedPegIndexes=[];
+	for(var i=0;i<this.balls.length;i++) {
+		if(!this.balls[i].isUsed) {
+			usedPegIndexes.push(this.balls[i].containerIndex);
+		}
+	}
+	usedPegIndexes.sort();
+
+	var j=-1;
+	for(var i=0;i<this.balls.length;i++) {
+		if(this.balls[i].isUsed && this.balls[i].containerIndex===this.currentBoxIndex-1) {
+			j=i;
+			break;
+		}
+	}
+
+	if(j!=-1) {
+		for(var i=this.pegs.length-1;i>=0;i--) {
+			if(usedPegIndexes.indexOf(i)===-1) {
+				this.balls[j].moveTo(
+					this.pegs[i].x,
+					this.pegs[i].y
+				);
+				this.balls[j].isUsed=false;
+				this.balls[j].containerIndex=i;
+				this.currentBoxIndex--;
+				break;
+			}
+		}
+	}
+}
+
+Game.prototype.enterBalls=function() {
+}
+
+Game.prototype.clearBalls=function() {
+	while(this.currentBoxIndex) {
+		this.clearBall();
+	}	
+}
+
+Game.prototype.lastBalls=function() {
+}
+
 Game.prototype.draw=function() {
 
 	var self=this;
@@ -169,19 +247,11 @@ Game.prototype.draw=function() {
 
 			this.diameter = 32+6;
 			this.gap = 4;
+			this.ballFont=new Font(Math.floor(this.diameter/2)+"px sans","center","middle");
 
 			this.cx = (this.canvas.width-this.word.length*(this.diameter+this.gap))/2+(this.diameter+this.gap)/2;
 
 			this.cy = this.canvas.height-80;
-
-			this.balls=[];
-			for(var i=0;i<this.word.length;i++) {
-				this.balls.push(new Ball(
-					this.word[i],i*(this.diameter+this.gap)+this.cx,
-					this.cy,
-					this.diameter-8
-				));
-			}
 
 			this.boxes=[];
 			for(var i=0;i<this.word.length;i++) {
@@ -201,8 +271,34 @@ Game.prototype.draw=function() {
 				));
 			}
 
+			this.balls=[];
+			for(var i=0;i<this.word.length;i++) {
+				this.balls.push(new Ball(this.ballFont,
+					this.word[i],i*(this.diameter+this.gap)+this.cx,
+					this.cy,
+					this.diameter-8
+				));
+				this.balls[i].isUsed=false;
+				this.balls[i].containerIndex=i;
+			}
+
+			this.diameter=32;
+			this.gap=16;
+			this.cx = (canvas.width-4*(this.diameter+this.gap))/2;
+			this.cy = this.canvas.height-this.diameter-this.gap/2;
+
+			this.buttons=[];
+
+			this.buttons.push(new Button(this.loadedAssets.circle,0*(this.diameter+this.gap)+this.cx,this.cy,this.diameter,this.diameter));
+
+			this.buttons.push(new Button(this.loadedAssets.triangle,1*(this.diameter+this.gap)+this.cx,this.cy,this.diameter,this.diameter));
+
+			this.buttons.push(new Button(this.loadedAssets.cross,2*(this.diameter+this.gap)+this.cx,this.cy,this.diameter,this.diameter));
+
+			this.buttons.push(new Button(this.loadedAssets.square,3*(this.diameter+this.gap)+this.cx,this.cy,this.diameter,this.diameter));
+
 			this.gameState=this.GameState.PLAY;
-			
+
 			break;
 
 		case this.GameState.PLAY:
@@ -218,7 +314,31 @@ Game.prototype.draw=function() {
 			}
 
 			for(var i=0;i<this.balls.length;i++) {
+				this.balls[i].handleEvents(pointer);
+				this.balls[i].update();
 				this.balls[i].draw(this.ctx);
+
+				if(this.balls[i].isClicked && !this.balls[i].isUsed) {
+					this.balls[i].moveTo(
+						this.boxes[this.currentBoxIndex].x,
+						this.boxes[this.currentBoxIndex].y
+					);
+					this.balls[i].isUsed=true;
+					this.balls[i].containerIndex=this.currentBoxIndex;
+					this.currentBoxIndex++;
+				}
+			}
+
+			for(var i=0;i<this.buttons.length;i++) {
+				this.buttons[i].handleEvents(pointer);
+				this.buttons[i].draw(this.ctx);
+
+				if(this.buttons[i].isClicked) {
+					if(i===0) this.shuffleBalls();
+					else if(i===1) this.enterBalls();
+					else if(i===2) this.clearBalls();
+					else if(i===3) this.lastBalls();
+				}
 			}
 
 		    break;

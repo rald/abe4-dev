@@ -1,52 +1,51 @@
-var ButtonState = {
-    UP: "UP",
-	OVER: "OVER",
-    DOWN: "DOWN"
-};
+Button = function(img, x, y, w, h) {
+	this.ButtonState = {
+	    UP: "UP",
+		OVER: "OVER",
+	    DOWN: "DOWN"
+	};
 
-function Button(img, x, y, w, h) {
     this.img = img;
     this.w = w;
     this.h = h;
     this.x = x;
     this.y = y;
-    this.state = ButtonState.UP;
+    this.state = this.ButtonState.UP;
     this.isPressed = false;
     this.isClicked = false;
 }
 
 Button.prototype.handleEvents = function(pointer) {
     var isInside = inrect(pointer.x, pointer.y, this.x, this.y, this.w, this.h);
-
     this.isClicked = false;
 
     if (pointer.isDown) {
-        if (isInside && !this.isPressed && this.state !== ButtonState.DOWN) {
+        if (isInside && !this.isPressed && this.state !== this.ButtonState.DOWN) {
             this.isPressed = true;
         }
         if (this.isPressed && isInside) {
-            this.state = ButtonState.DOWN;
+            this.state = this.ButtonState.DOWN;
         } else {
-            this.state = isInside ? ButtonState.OVER : ButtonState.UP;
+            this.state = isInside ? this.ButtonState.OVER : this.ButtonState.UP;
         }
     } else {
         if (this.isPressed && isInside) {
             this.isClicked = true;
         }
         this.isPressed = false;
-        this.state = isInside ? ButtonState.OVER : ButtonState.UP;
+        this.state = isInside ? this.ButtonState.OVER : this.ButtonState.UP;
     }
 };
 
-Button.prototype.draw = function() {
+Button.prototype.draw = function(ctx) {
 	switch(this.state) {
-		case ButtonState.UP:
+		case this.ButtonState.UP:
 		    ctx.fillStyle = palette[10];
 		break;
-		case ButtonState.OVER:
+		case this.ButtonState.OVER:
 		    ctx.fillStyle = palette[9];
 		break;
-		case ButtonState.DOWN:
+		case this.ButtonState.DOWN:
 		    ctx.fillStyle = palette[10];
 		break;
 	}
