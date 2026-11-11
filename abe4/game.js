@@ -240,7 +240,22 @@ Game.prototype.clearBall=function() {
 }
 
 Game.prototype.enterBalls=function() {
-		
+	
+	var balls=[];
+	for(var i=0;i<this.balls.length;i++) {
+		if(this.balls.isUsed) {
+			balls.push(this.balls[i]);
+		}
+	}
+
+	balls.sort((a, b) => a.containerIndex - b.containerIndex);
+
+	var guess="";
+	for(var i=0;i<balls.length;i++) {
+		guess+=balls[i].letter;
+	}
+
+	console.log(guess);
 }
 
 Game.prototype.clearBalls=function() {
