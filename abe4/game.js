@@ -1,357 +1,225 @@
-// Expose functions globally on window
-window.preload = preload;
-window.setup = setup;
-window.draw = draw;
+function Game(canvasId) {
+	this.canvas = document.getElementById(canvasId);
+	this.ctx = canvas.getContext("2d");
 
-function PointerHandler(element) {
-    this.element = element;
+	this.GameState = {
+	    PRELOAD: "PRELOAD",
+		INIT: "INIT",
+	    PLAY: "PLAY",
+	    COMPLETE: "COMPLETE",
+	    END: "END"
+	};
 
-    this.onPointerDown = this.onPointerDown.bind(this);
-    this.onPointerMove = this.onPointerMove.bind(this);
-    this.onPointerUp = this.onPointerUp.bind(this);
+	this.assetsToLoad = [
+		{ id: 'wordlist',type: 'text',src: 'assets/wordlist.txt' },
+		{ id: 'randword',type: 'text',src: 'assets/randword.txt' },
+		{ id: 'circle',type: 'image',src: 'assets/circle.png' },
+		{ id: 'triangle',type: 'image',src: 'assets/triangle.png' },
+		{ id: 'cross',type: 'image',src: 'assets/cross.png' },
+		{ id: 'square',type: 'image',src: 'assets/square.png' }
+	];
 
-    this.element.addEventListener('pointerdown', this.onPointerDown);
-    window.addEventListener('pointermove', this.onPointerMove);
-    window.addEventListener('pointerup', this.onPointerUp);
-    window.addEventListener('pointercancel', this.onPointerUp);
-
-    this.element.style.touchAction = 'none';
+	this.gameState = this.GameState.PRELOAD;
+	this.wordlists = null;
+	this.randwords = null;
+	this.font = new Font("16px sans","left","top");
+	this.word = "";
+	this.shuffledWord = "";
+	this.preloadCompleteTime = null;
+	this.frames = 0;
+	this.diameter = 32;
+	this.gap = 8;
+	this.cx;
+	this.cy;
+	this.balls=null;
+	this.pegs=null;
+	this.boxes=null;
+	this.buttons=null;
+	this.loadedAssets = {};
+	this.itemsLoaded = 0;
+	this.totalItems = this.assetsToLoad.length;
+	this.currentProgress = 0;
+	this.targetProgress = 0;
+	this.handler = new PointerHandler(canvas);
 }
 
-PointerHandler.prototype.onPointerDown = function(event) {
-    try {
-        this.element.setPointerCapture(event.pointerId);
-    } catch (err) {}
-
-    var coords = this.getCoordinates(event);
-    pointer.x = coords.x;
-    pointer.y = coords.y;
-    pointer.isDown = true;
-};
-
-PointerHandler.prototype.onPointerMove = function(event) {
-    var coords = this.getCoordinates(event);
-    pointer.x = coords.x;
-    pointer.y = coords.y;
-};
-
-PointerHandler.prototype.onPointerUp = function(event) {
-    try {
-        this.element.releasePointerCapture(event.pointerId);
-    } catch (err) {}
-
-    var coords = this.getCoordinates(event);
-    pointer.x = coords.x;
-    pointer.y = coords.y;
-    pointer.isDown = false;
-};
-
-PointerHandler.prototype.getCoordinates = function(event) {
-    var rect = this.element.getBoundingClientRect();
-
-    var canvasWidth = this.element.width;
-    var canvasHeight = this.element.height;
-    var canvasAspect = canvasWidth / canvasHeight;
-    var rectAspect = rect.width / rect.height;
-
-    var renderWidth, renderHeight, offsetX, offsetY;
-
-    if (rectAspect > canvasAspect) {
-        renderHeight = rect.height;
-        renderWidth = renderHeight * canvasAspect;
-        offsetX = rect.left + (rect.width - renderWidth) / 2;
-        offsetY = rect.top;
-    } else {
-        renderWidth = rect.width;
-        renderHeight = renderWidth / canvasAspect;
-        offsetX = rect.left;
-        offsetY = rect.top + (rect.height - renderHeight) / 2;
-    }
-
-    var clientX = event.clientX - offsetX;
-    var clientY = event.clientY - offsetY;
-
-    var scaleX = canvasWidth / renderWidth;
-    var scaleY = canvasHeight / renderHeight;
-
-    return {
-        x: clientX * scaleX,
-        y: clientY * scaleY,
-        clientX: event.clientX,
-        clientY: event.clientY
-    };
-};
-
-PointerHandler.prototype.destroy = function() {
-    this.element.removeEventListener('pointerdown', this.onPointerDown);
-    window.removeEventListener('pointermove', this.onPointerMove);
-    window.removeEventListener('pointerup', this.onPointerUp);
-    window.removeEventListener('pointercancel', this.onPointerUp);
-};
-
-function clrscr(clr) {
-    ctx.fillStyle = clr;
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
-}
-
-function drawTextFallback(w, h, x, y, t) {
-    ctx.fillStyle = palette[12];
-    ctx.font = '16px monospace';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.fillText(t, x, y);
-}
-
-function drawChar(fontImg, w, h, x, y, c) {
-    if (!fontImg) {
-        drawTextFallback(w, h, x, y, c);
-        return;
-    }
-    var code = c.codePointAt(0);
-    var sx = (code % 16) * (w + 1) + 1;
-    var sy = Math.trunc(code / 16) * (h + 1) + 1;
-    ctx.drawImage(fontImg, sx, sy, w, h, x, y, w, h);
-}
-
-function drawText(fontImg, w, h, x, y, t) {
-    if (!fontImg) {
-        drawTextFallback(w, h, x, y, t);
-        return;
-    }
-    var cx = x, cy = y;
-    for (var i = 0; i < t.length; i++) {
-        drawChar(fontImg, w, h, cx, cy, t[i]);
-        cx += w;
-        if (cx + w > canvas.width) {
-            cx = x;
-            cy += h;
-        }
-    }
-}
-
-function drawProgressBar(percent) {
-    clrscr("#000000");
+Game.prototype.drawProgressBar=function(percent) {
+    Graphics.clrscr(this.ctx,palette[0]);
 
     var barWidth = 180;
     var barHeight = 16;
     var x = (canvas.width - barWidth) / 2;
     var y = (canvas.height - barHeight) / 2;
 
-    ctx.fillStyle = palette[12];
-    ctx.font = '12px monospace';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'alphabetic';
-    ctx.fillText('LOADING: ' + Math.floor(percent * 100) + '%', canvas.width / 2, y - 10);
+    this.ctx.strokeStyle = palette[1];
+    this.ctx.lineWidth = 2;
+    this.ctx.strokeRect(x, y, barWidth, barHeight);
 
-    ctx.strokeStyle = palette[1];
-    ctx.lineWidth = 2;
-    ctx.strokeRect(x, y, barWidth, barHeight);
-
-    ctx.fillStyle = palette[5];
-    ctx.fillRect(x + 2, y + 2, (barWidth - 4) * percent, barHeight - 4);
+    this.ctx.fillStyle = palette[5];
+    this.ctx.fillRect(x + 2, y + 2, (barWidth - 4) * percent, barHeight - 4);
 }
 
-function onItemLoaded(id, assetData) {
-    loadedAssets[id] = assetData;
-    itemsLoaded++;
-    targetProgress = itemsLoaded / totalItems;
+Game.prototype.onItemLoaded=function(id, assetData) {
+    this.loadedAssets[id] = assetData;
+    this.itemsLoaded++;
+    this.targetProgress = this.itemsLoaded / this.totalItems;
 }
 
-function loadTextAsset(item) {
+Game.prototype.loadTextAsset=function(item) {
+    var self = this; // Save reference to Game instance
     var xhr = new XMLHttpRequest();
     xhr.open('GET', item.src, true);
     xhr.onreadystatechange = function() {
         if (xhr.readyState === 4) {
             if (xhr.status === 200 || (xhr.status === 0 && xhr.responseText)) {
-                onItemLoaded(item.id, xhr.responseText);
+                self.onItemLoaded(item.id, xhr.responseText);
             } else {
                 console.warn('Missing text file (using fallback): ' + item.src);
-                onItemLoaded(item.id, null);
+                self.onItemLoaded(item.id, null);
             }
         }
     };
     xhr.send();
 }
 
-function loadImageAsset(item) {
+Game.prototype.loadImageAsset=function(item) {
+	    var self = this; // Save reference to Game instance
     var img = new Image();
     img.onload = function() {
-        onItemLoaded(item.id, img);
+        self.onItemLoaded(item.id, img);
     };
     img.onerror = function() {
         console.warn('Missing image file (using fallback): ' + item.src);
-        onItemLoaded(item.id, null);
+        self.onItemLoaded(item.id, null);
     };
     img.src = item.src;
 }
 
-function preload() {
-    gameState = GameState.PRELOADING;
-    currentProgress = 0;
-    targetProgress = 0;
-    preloadCompleteTime = null;
+Game.prototype.preload=function() {
+    this.gameState = this.GameState.PRELOAD;
+    this.currentProgress = 0;
+    this.targetProgress = 0;
+    this.preloadCompleteTime = null;
 
-    if (assetsToLoad.length === 0) {
-        targetProgress = 1.0;
-        itemsLoaded = 0;
-        totalItems = 1;
-        onItemLoaded('dummy', true);
+    if (this.assetsToLoad.length === 0) {
+        this.targetProgress = 1.0;
+        this.itemsLoaded = 0;
+        this.totalItems = 1;
+        this.onItemLoaded('dummy', true);
         return;
     }
 
-    for (var i = 0; i < assetsToLoad.length; i++) {
-        var item = assetsToLoad[i];
+    for (var i = 0; i < this.assetsToLoad.length; i++) {
+        var item = this.assetsToLoad[i];
         if (item.type === 'text') {
-            loadTextAsset(item);
+            this.loadTextAsset(item);
         } else if (item.type === 'image') {
-            loadImageAsset(item);
+            this.loadImageAsset(item);
         }
     }
 }
 
-function setup() {
-    canvas.width = 256;
-    canvas.height = 256 + 128;
-
-    cx = (canvas.width - 11 * 6) / 2;
-    cy = (canvas.height - 5) / 2;
-
-    window.preload();
+Game.prototype.setup=function() {
+    this.canvas.width = 256;
+    this.canvas.height = 256 + 128;
+    this.preload();
 }
 
-function shuffleBalls() {
-    if (!balls || balls.length === 0) return;
+Game.prototype.draw=function() {
 
-    var targets = balls.map(function(b) {
-        return { x: b.targetX, y: b.targetY };
-    });
+	var self=this;
 
-    for (var i = targets.length - 1; i > 0; i--) {
-        var j = rnd(i + 1);
-        var temp = targets[i];
-        targets[i] = targets[j];
-        targets[j] = temp;
-    }
+	switch(this.gameState) {
 
-    for (var i = 0; i < balls.length; i++) {
-        balls[i].targetX = targets[i].x;
-        balls[i].targetY = targets[i].y;
-    }
-}
+		case this.GameState.PRELOAD:
+	        var diff = this.targetProgress - this.currentProgress;
+	        this.currentProgress += diff * 0.15;
 
-function draw() {
-
-	switch(gameState) {
-
-		case GameState.PRELOADING:
-	        var diff = targetProgress - currentProgress;
-	        currentProgress += diff * 0.15;
-
-	        if (itemsLoaded >= totalItems && (targetProgress - currentProgress < 0.01 || currentProgress > 0.99)) {
-	            currentProgress = 1.0;
+	        if (this.itemsLoaded >= this.totalItems && (this.targetProgress - this.currentProgress < 0.01 || this.currentProgress > 0.99)) {
+	            this.currentProgress = 1.0;
 	        }
 
-	        drawProgressBar(currentProgress);
+	        this.drawProgressBar(this.currentProgress);
 
-	        if (currentProgress === 1.0) {
+	        if (this.currentProgress === 1.0) {
 	            var now = performance.now();
-	            if (!preloadCompleteTime) {
-	                preloadCompleteTime = now;
+	            if (!this.preloadCompleteTime) {
+	                this.preloadCompleteTime = now;
 	            }
 
 	            var delayMs = 300; 
-	            if (now - preloadCompleteTime >= delayMs) {
-	                if (loadedAssets.randword && typeof loadedAssets.randword === 'string') {
-	                    randwords = loadedAssets.randword.trim().split(/\r\n|\n|\r/);
-	                    if (randwords.length > 0 && randwords[0] !== "") {
-	                        word = randwords[rnd(randwords.length)].trim();
+	            if (now - this.preloadCompleteTime >= delayMs) {
+	                if (this.loadedAssets.randword && typeof this.loadedAssets.randword === 'string') {
+	                    this.randwords = this.loadedAssets.randword.trim().split(/\r\n|\n|\r/);
+	                    if (this.randwords.length > 0 && this.randwords[0] !== "") {
+	                        this.word = this.randwords[rnd(this.randwords.length)].trim();
 	                    }
 	                }
 
-	                if (loadedAssets.wordlist && typeof loadedAssets.wordlist === 'string') {
-	                    wordlists = loadedAssets.wordlist.trim().split(/\r\n|\n|\r/);
+	                if (this.loadedAssets.wordlist && typeof this.loadedAssets.wordlist === 'string') {
+	                    this.wordlists = this.loadedAssets.wordlist.trim().split(/\r\n|\n|\r/);
 	                }
 
-	                if (loadedAssets.font) {
-	                    font = loadedAssets.font;
-	                }
-
-	                gameState = GameState.INIT;
+	                this.gameState = this.GameState.INIT;
 	            }
 		    }
 			break;
 
-		case GameState.INIT:
+		case this.GameState.INIT:
 
-			diameter = 36;
-			gap = 4;
+			this.diameter = 32+6;
+			this.gap = 4;
 
-			cx=(canvas.width-word.length*(diameter+gap))/2+(diameter+gap)/2;
-			cy=canvas.height;
+			this.cx = (this.canvas.width-this.word.length*(this.diameter+this.gap))/2+(this.diameter+this.gap)/2;
 
-			balls = [];
-			for (var i = 0; i < word.length; i++) {
-				balls.push(new Ball(word[i],i*(diameter+gap)+cx,cy-80,diameter-6));
+			this.cy = this.canvas.height-80;
+
+			this.balls=[];
+			for(var i=0;i<this.word.length;i++) {
+				this.balls.push(new Ball(
+					this.word[i],i*(this.diameter+this.gap)+this.cx,
+					this.cy,
+					this.diameter-8
+				));
 			}
 
-			pegs = [];
-			for (var i = 0; i < word.length; i++) {
-				pegs.push(new Peg(i*(diameter+gap)+cx,cy-80,diameter/2-6));
+			this.boxes=[];
+			for(var i=0;i<this.word.length;i++) {
+				this.boxes.push(new Box(
+					i*(this.diameter+this.gap)+this.cx,
+					this.cy-(this.diameter+this.gap),
+					this.diameter
+				));
 			}
 
-			boxes = [];
-			for (var i = 0; i < word.length; i++) {
-				boxes.push(new Box(i*(diameter+gap)+cx,cy-120,diameter));
+			this.pegs=[];
+			for(var i=0;i<this.word.length;i++) {
+				this.pegs.push(new Peg(
+					i*(this.diameter+this.gap)+this.cx,
+					this.cy,
+					this.diameter/2
+				));
 			}
 
-			buttons = [];
-			buttons.push(new Button(loadedAssets.circle,30,cy-44,32,32));
-			buttons.push(new Button(loadedAssets.triangle,80,cy-44,32,32));
-			buttons.push(new Button(loadedAssets.cross,130,cy-44,32,32));
-			buttons.push(new Button(loadedAssets.square,180,cy-44,32,32));
-
-			gameState = GameState.PLAY;
+			this.gameState=this.GameState.PLAY;
+			
 			break;
 
-		case GameState.PLAY:
+		case this.GameState.PLAY:
 
-		    clrscr(palette[10]);
+			Graphics.clrscr(this.ctx,palette[10]);
 
-		    var mx = pointer.x.toFixed(2).padStart(7, ' ');
-		    var my = pointer.y.toFixed(2).padStart(7, ' ');
-
-		    drawText(font, 8, 8, 2, 0, "X:" + mx + " Y:" + my + " DOWN:" + pointer.isDown);
-		    drawText(font, 8, 8, 2, 8, "FRAMES:" + frames);
-
-		    if (word) {
-		        drawText(font, 8, 8, 2, 16, "WORD:" + word.toUpperCase());
-		    }
-
-			for(var box of boxes) {
-				box.draw();
+			for(var i=0;i<this.boxes.length;i++) {
+				this.boxes[i].draw(this.ctx);
 			}
 
-			for(var peg of pegs) {
-				peg.draw();
+			for(var i=0;i<this.pegs.length;i++) {
+				this.pegs[i].draw(this.ctx);
 			}
 
-			for(var ball of balls) {
-				ball.draw();
+			for(var i=0;i<this.balls.length;i++) {
+				this.balls[i].draw(this.ctx);
 			}
-
-			for(var i = 0; i < buttons.length; i++) {
-				var button = buttons[i];
-				button.handleEvents(pointer);
-				button.draw();
-
-				if (button.isClicked) {
-					if (i === 0) { // Circle button index
-						shuffleBalls();
-					}
-				}
-			}
-
-		    frames++;
 
 		    break;
 
@@ -359,93 +227,19 @@ function draw() {
 		    break;
 	}
 
-	// Keep the animation loop running continuously across all states
-	window.requestAnimationFrame(window.draw);
+	window.requestAnimationFrame(function(){self.draw()});
 }
 
-window.addEventListener('contextmenu', (event) => {
-    event.preventDefault();
-});
+window.onload=function() {
+	var game = new Game("canvas");
 
-var canvas = document.getElementById("canvas");
-var ctx = canvas.getContext("2d");
+	window.addEventListener('contextmenu', (event) => {
+	    event.preventDefault();
+	});
 
-var GameState = {
-    PRELOADING: "PRELOADING",
-	INIT: "INIT",
-    PLAY: "PLAY",
-    COMPLETE: "COMPLETE",
-    END: "END",
-};
+	game.setup();
 
-var assetsToLoad = [{
-        id: 'wordlist',
-        type: 'text',
-        src: 'assets/wordlist.txt'
-    },
-    {
-        id: 'randword',
-        type: 'text',
-        src: 'assets/randword.txt'
-    },
-    {
-        id: 'font',
-        type: 'image',
-        src: 'assets/font.png'
-    },
-    {
-        id: 'circle',
-        type: 'image',
-        src: 'assets/circle.png'
-    },
-    {
-        id: 'triangle',
-        type: 'image',
-        src: 'assets/triangle.png'
-    },
-    {
-        id: 'cross',
-        type: 'image',
-        src: 'assets/cross.png'
-    },
-    {
-        id: 'square',
-        type: 'image',
-        src: 'assets/square.png'
-    }
-];
-
-var pointer = {
-	x: 0,
-	y: 0,
-	isDown: false,
+	window.requestAnimationFrame(function() {
+	    game.draw();
+	});
 }
-
-var gameState;
-
-var wordlists = null;
-var randwords = null;
-var font = null;
-var word = "";
-var shuffledWord = "";
-var preloadCompleteTime = null;
-var frames = 0;
-var diameter = 32;
-var gap = 8;
-var cx;
-var cy;
-var balls=null;
-var pegs=null;
-var boxes=null;
-var buttons=null;
-
-var loadedAssets = {};
-var itemsLoaded = 0;
-var totalItems = assetsToLoad.length;
-var currentProgress = 0;
-var targetProgress = 0;
-
-var handler = new PointerHandler(canvas);
-
-window.setup();
-window.requestAnimationFrame(window.draw);

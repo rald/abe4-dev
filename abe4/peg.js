@@ -4,7 +4,7 @@ function Peg(x, y, d) {
     this.d = d;
 }
 
-Peg.prototype.draw = function() {
+Peg.prototype.draw = function(ctx) {
 	ctx.beginPath();
 	ctx.fillStyle = palette[5];
 	ctx.arc(this.x, this.y, this.d/2, 0, 2 * Math.PI);

@@ -1,4 +1,4 @@
-function Ball(letter, x, y, d) {
+Ball=function(letter, x, y, d) {
     this.letter = letter.toUpperCase();
     this.x = x;
     this.y = y;
@@ -13,7 +13,7 @@ Ball.prototype.update = function() {
     this.y += (this.targetY - this.y) * 0.2;
 };
 
-Ball.prototype.draw = function() {
+Ball.prototype.draw = function(ctx) {
     this.update();
 
 	ctx.beginPath();
