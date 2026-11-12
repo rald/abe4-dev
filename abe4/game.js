@@ -21,7 +21,6 @@ function Game(canvasId) {
 	this.gameState = this.GameState.PRELOAD;
 	this.wordlists = null;
 	this.randwords = null;
-	this.font = new Font("16px sans","left","top");
 	this.word = "";
 	this.shuffledWord = "";
 	this.preloadCompleteTime = null;
@@ -41,14 +40,12 @@ function Game(canvasId) {
 	this.targetProgress = 0;
 	this.handler = new PointerHandler(canvas);
 	this.currentBoxIndex=0;
-	this.ballFont=null;
-	this.lastBallIndexes=null;
+	this.lastBallBoxIndexes=[];
 	this.subAnagrams=null;
 	this.guessed=null;
 	this.numWordsLeft=0;
 	this.score=0;
-	this.hud=null;
-	this.allottedTime=10;
+	this.allottedTime=180;
 	this.currentTime=0;
 	this.remainingTime=0;
 	this.timeTickInterval=null;
@@ -59,6 +56,8 @@ function Game(canvasId) {
 	this.messages=[];
 	this.messageTicks=0;
 	this.messageDelay=3;
+	this.font = new Font("16px sono","left","top");
+	this.hud = new Font("16px sono","left","top");
 }
 
 Game.prototype.drawProgressBar=function(percent) {
@@ -259,6 +258,10 @@ Game.prototype.clearBall=function() {
 	}
 }
 
+Game.prototype.addMessage=function(msg) {
+	this.messages.push(msg);
+}
+
 Game.prototype.enterBalls=function() {
 	
 	var balls=[];
@@ -275,23 +278,35 @@ Game.prototype.enterBalls=function() {
 		guess+=balls[i].letter;
 	}
 
+	if(guess==="") return;
+
 	var i=this.subAnagrams.indexOf(guess);
-	if(i!==-1 && !this.guessed[i]) {
+
+	if(i===-1) {
+
+		this.addMessage("\""+guess+"\" not found.\n");		
+
+	} else if(this.guessed[i]) {
+
+		this.addMessage("\""+guess+"\" guessed.\n");
+
+	} else {
+
 		this.guessed[i]=true;
 		
 		var points=guess.length*guess.length*10;
 
-		this.messages.push("Plus "+points+" points.\n");
+		this.addMessage("Plus "+points+" points.\n");
 
 		this.score+=points;
 
 		if(guess.length === this.word.length) {
 			this.score+=this.fullWordBonus;
 
-			this.messages.push("Full word bonus "+this.fullWordBonus+"\n");
+			this.addMessage("Full word bonus "+this.fullWordBonus+"\n");
 
 			if(!this.qualify) {
-				this.messages.push("Next round unlocked.\n");
+				this.addMessage("Next round unlocked.\n");
 				this.qualify=true;
 			}
 		}
@@ -301,15 +316,17 @@ Game.prototype.enterBalls=function() {
 			this.score+=this.gameCompleteBonus;
 			this.score+=this.remainingTime*10;
 
-			this.message.push("Remaining Time bonus "+(this.remainingTimeBonus*10)+".\n");
-			this.messages.push("Game completed bonus "+this.gameCompleteBonus+".\n");
+			this.addMessage("Remaining Time bonus "+(this.remainingTimeBonus*10)+".\n");
+			this.addMessage("Game completed bonus "+this.gameCompleteBonus+".\n");
 
 			this.gameState=this.GameState.END;
 		}
 
-		this.lastBallIndexes=[];
-		for(var i=0;i<balls.length;i++) {
-			this.lastBallIndexes.push(i);
+		this.lastBallBoxIndexes=[];
+		for(var i=0;i<this.balls.length;i++) {
+			if(this.balls[i].isUsed) {
+				this.lastBallBoxIndexes.push([i,this.balls[i].containerIndex]);
+			}
 		}		
 
 		this.clearBalls();
@@ -324,6 +341,15 @@ Game.prototype.clearBalls=function() {
 }
 
 Game.prototype.lastBalls=function() {
+	this.clearBalls();
+	for(var i=0;i<this.lastBallBoxIndexes.length;i++) {
+		var j=this.lastBallBoxIndexes[i][0];
+		var k=this.lastBallBoxIndexes[i][1];
+		this.balls[j].moveTo(this.boxes[k].x,this.boxes[k].y);
+		this.balls[j].containerIndex=k;
+		this.balls[j].isUsed=true;
+		this.currentBoxIndex++;
+	}	
 }
 
 Game.prototype.timeTick=function() {
@@ -342,6 +368,7 @@ Game.prototype.timeTick=function() {
 		if (this.remainingTime <= 0) {
 			this.remainingTime = 0;
 			this.clearBalls();
+			this.messages.push("Time is up!");
 			this.gameState = this.GameState.END;
 		}
 		this.currentTime++;
@@ -384,8 +411,6 @@ Game.prototype.draw=function() {
 
 		case this.GameState.INIT:
 
-			this.hud = new Font("bold 16px monospace","left","top");
-
 			this.word = this.randwords[rnd(this.randwords.length)].trim();
 			this.shuffledWord = shuffleString(this.word);
 			this.subAnagrams = Game.getSubAnagrams(this.word, this.wordlists, 3);			this.numWordsLeft=this.subAnagrams.length;
@@ -397,7 +422,7 @@ Game.prototype.draw=function() {
 			
 			this.diameter = 32+6;
 			this.gap = 4;
-			this.ballFont=new Font(Math.floor(this.diameter/2)+"px sans","center","middle");
+			this.ballFont=new Font(Math.floor(this.diameter/2)+"px sono","center","middle");
 
 			this.cx = (this.canvas.width-this.word.length*(this.diameter+this.gap))/2+(this.diameter+this.gap)/2;
 
