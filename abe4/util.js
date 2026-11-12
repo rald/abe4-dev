@@ -20,3 +20,12 @@ function shuffleString(str) {
 	}
 	return arr.join('');
 }
+
+function chr(code) {
+	return String.fromCodePoint(code);
+}
+
+function ord(char) {
+	return char.codePointAt(0);
+}
+

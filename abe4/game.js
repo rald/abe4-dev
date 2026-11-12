@@ -1,4 +1,4 @@
-Game=function(canvasId) {
+Game = function(canvasId) {
 	this.canvas = document.getElementById(canvasId);
 	this.ctx = canvas.getContext("2d");
 
@@ -16,8 +16,11 @@ Game=function(canvasId) {
 		{ id: 'triangle', type: 'image', src: 'assets/triangle.png' },
 		{ id: 'cross', type: 'image', src: 'assets/cross.png' },
 		{ id: 'square', type: 'image', src: 'assets/square.png' },
-		{ id: 'sono', family: 'sono', type: 'font', src: 'assets/sono/web/Sono-Bold.woff2' }
+		{ id: 'sono', family: 'sono', type: 'font', src: 'assets/sono/web/Sono-Bold.woff2' },
+		{ id: 'pressstart', family: 'pressstart', type: 'font', src: "assets/PressStart2P/PressStart2P.ttf" }
 	];
+
+	this.allottedTime=180;
 
 	this.gameState = this.GameState.PRELOAD;
 	this.wordlists = null;
@@ -46,7 +49,6 @@ Game=function(canvasId) {
 	this.guessed=null;
 	this.numWordsLeft=0;
 	this.score=0;
-	this.allottedTime=180;
 	this.currentTime=0;
 	this.remainingTime=0;
 	this.timeTickInterval=null;
@@ -58,7 +60,10 @@ Game=function(canvasId) {
 	this.messageTicks=0;
 	this.messageDelay=3;
 	this.font=null;
+	this.suno=null;
+	this.pressstart=null;
 	this.hud=null;
+	this.display=null;
 };
 
 Game.prototype.drawProgressBar=function(percent) {
@@ -304,7 +309,7 @@ Game.prototype.enterBalls=function() {
 
 	} else if(this.guessed[i]) {
 
-		this.addMessage("\""+guess+"\" guessed.\n");
+		this.addMessage("\""+guess+"\" already guessed.\n");
 
 	} else {
 
@@ -391,6 +396,42 @@ Game.prototype.timeTick=function() {
 	}
 };
 
+Game.prototype.displaySubAnagrams=function(show) {
+	var dx=4;
+	var dy=84;
+	var x=dx;
+	var y=dy;
+	var w=0;
+	var gap=8;
+	var fw=8;
+	var fh=8;
+	for(var i=0;i<this.subAnagrams.length;i++) {
+		var len=this.subAnagrams[i].length;
+
+		if(show) {
+			if(this.guessed[i]) {
+				this.display.fillText(this.ctx,this.subAnagrams[i],x,y,palette[12]);
+			} else {
+				this.display.fillText(this.ctx,this.subAnagrams[i],x,y,palette[2]);
+			}
+		} else if(this.guessed[i]) {
+			this.display.fillText(this.ctx,this.subAnagrams[i],x,y,palette[12]);
+		} else {
+			this.display.fillText(this.ctx,'*'.repeat(len),x,y,palette[12]);
+		}
+
+		if(w<len) {
+			w+=len*fw;
+		}
+		y+=fh+gap;
+		if(y+fh>=256-32) {
+			x+=w+gap;
+			y=dy;
+			w=len*fw;
+		}
+	}
+}
+
 Game.prototype.draw=function() {
 
 	var self=this;
@@ -422,6 +463,8 @@ Game.prototype.draw=function() {
 
 					if(this.loadedAssets.sono) this.sono = this.loadedAssets.sono;
 
+					if(this.loadedAssets.pressstart) this.pressstart = this.loadedAssets.pressstart;
+
 	                this.gameState = this.GameState.INIT;
 	            }
 		    }
@@ -431,6 +474,7 @@ Game.prototype.draw=function() {
 
 			this.font = new Font("16px sono","left","top");
 			this.hud = new Font("16px sono","left","top");
+			this.display = new Font("8px pressstart","left","top");
 
 			this.word = this.randwords[rnd(this.randwords.length)].trim();
 			this.shuffledWord = shuffleString(this.word);
@@ -554,6 +598,8 @@ Game.prototype.draw=function() {
 				}
 			}
 
+			this.displaySubAnagrams(false);
+
 		    break;
 
 		case this.GameState.END:
@@ -581,7 +627,7 @@ Game.prototype.draw=function() {
 				}
 			}
 
-			this.hud.fillText(this.ctx, "GAME OVER", (this.canvas.width-9*10)/2, this.canvas.height-16*10-4, palette[12]);
+			this.hud.fillText(this.ctx, "GAME OVER", (this.canvas.width-9*10)/2, this.canvas.height-16*10, palette[12]);
 
 			for(var i=0;i<this.boxes.length;i++) {
 				this.boxes[i].draw(this.ctx);
@@ -604,6 +650,8 @@ Game.prototype.draw=function() {
 				if(this.buttons[i].isClicked) {
 				}
 			}
+
+			this.displaySubAnagrams(true);
 
 			break;
 
