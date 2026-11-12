@@ -525,7 +525,7 @@ Game.prototype.draw=function() {
 			this.diameter=32;
 			this.gap=16;
 			this.cx = (canvas.width-4*(this.diameter+this.gap))/2;
-			this.cy = this.canvas.height-this.diameter-this.gap/2;
+			this.cy = this.canvas.height-this.diameter-this.gap;
 
 			this.buttons=[];
 
