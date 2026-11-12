@@ -533,8 +533,6 @@ Game.prototype.draw=function() {
 				}
 			}
 
-			this.gameState=this.GameState.END;
-
 		    break;
 
 		case this.GameState.END:
