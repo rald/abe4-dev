@@ -30,10 +30,3 @@ canvas {
   width: 100vw;
   height: 100vh;
 }
-
-@font-face {
-	font-family: 'Sono';
-	src: url('./assets/sono/web/Sono-Bold.woff2') format('woff2');
-	font-weight: bold;
-	font-style: normal;
-}

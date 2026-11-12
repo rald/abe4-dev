@@ -1,4 +1,4 @@
-function Game(canvasId) {
+Game=function(canvasId) {
 	this.canvas = document.getElementById(canvasId);
 	this.ctx = canvas.getContext("2d");
 
@@ -10,12 +10,13 @@ function Game(canvasId) {
 	};
 
 	this.assetsToLoad = [
-		{ id: 'wordlist',type: 'text',src: 'assets/wordlist.txt' },
-		{ id: 'randword',type: 'text',src: 'assets/randword.txt' },
-		{ id: 'circle',type: 'image',src: 'assets/circle.png' },
-		{ id: 'triangle',type: 'image',src: 'assets/triangle.png' },
-		{ id: 'cross',type: 'image',src: 'assets/cross.png' },
-		{ id: 'square',type: 'image',src: 'assets/square.png' }
+		{ id: 'wordlist', type: 'text', src: 'assets/wordlist.txt' },
+		{ id: 'randword', type: 'text', src: 'assets/randword.txt' },
+		{ id: 'circle', type: 'image', src: 'assets/circle.png' },
+		{ id: 'triangle', type: 'image', src: 'assets/triangle.png' },
+		{ id: 'cross', type: 'image', src: 'assets/cross.png' },
+		{ id: 'square', type: 'image', src: 'assets/square.png' },
+		{ id: 'sono', family: 'sono', type: 'font', src: 'assets/sono/web/Sono-Bold.woff2' }
 	];
 
 	this.gameState = this.GameState.PRELOAD;
@@ -56,9 +57,9 @@ function Game(canvasId) {
 	this.messages=[];
 	this.messageTicks=0;
 	this.messageDelay=3;
-	this.font = new Font("16px sono","left","top");
-	this.hud = new Font("16px sono","left","top");
-}
+	this.font=null;
+	this.hud=null;
+};
 
 Game.prototype.drawProgressBar=function(percent) {
     Graphics.clrscr(this.ctx,palette[0]);
@@ -74,13 +75,13 @@ Game.prototype.drawProgressBar=function(percent) {
 
     this.ctx.fillStyle = palette[5];
     this.ctx.fillRect(x + 2, y + 2, (barWidth - 4) * percent, barHeight - 4);
-}
+};
 
 Game.prototype.onItemLoaded=function(id, assetData) {
     this.loadedAssets[id] = assetData;
     this.itemsLoaded++;
     this.targetProgress = this.itemsLoaded / this.totalItems;
-}
+};
 
 Game.prototype.loadTextAsset=function(item) {
     var self = this; // Save reference to Game instance
@@ -97,10 +98,10 @@ Game.prototype.loadTextAsset=function(item) {
         }
     };
     xhr.send();
-}
+};
 
 Game.prototype.loadImageAsset=function(item) {
-	    var self = this; // Save reference to Game instance
+	var self = this; // Save reference to Game instance
     var img = new Image();
     img.onload = function() {
         self.onItemLoaded(item.id, img);
@@ -110,9 +111,22 @@ Game.prototype.loadImageAsset=function(item) {
         self.onItemLoaded(item.id, null);
     };
     img.src = item.src;
-}
+};
 
-Game.prototype.preload=function() {
+Game.prototype.loadFontAsset = function(item) {
+    var self = this; // Save reference to Game instance
+    var fontFace = new FontFace(item.family || item.id, 'url(' + item.src + ')');
+
+    fontFace.load().then(function(loadedFace) {
+        document.fonts.add(loadedFace);
+        self.onItemLoaded(item.id, loadedFace);
+    }).catch(function(err) {
+        console.warn('Missing or invalid font file (using fallback): ' + item.src, err);
+        self.onItemLoaded(item.id, null);
+    });
+};
+
+Game.prototype.preload = function() {
     this.gameState = this.GameState.PRELOAD;
     this.currentProgress = 0;
     this.targetProgress = 0;
@@ -132,9 +146,11 @@ Game.prototype.preload=function() {
             this.loadTextAsset(item);
         } else if (item.type === 'image') {
             this.loadImageAsset(item);
+        } else if (item.type === 'font') {
+            this.loadFontAsset(item);
         }
     }
-}
+};
 
 Game.prototype.setup=function() {
 	this.canvas.width = 256;
@@ -146,11 +162,11 @@ Game.prototype.setup=function() {
 	}, 1000);
 	
 	this.preload();
-}
+};
 
 Game.cleanStr=function(str) {
     return str.replace(/[\r\n]+/g, "").trim().toLowerCase();
-}
+};
 
 // Generate character frequency histogram
 Game.getHistogram=function(str) {
@@ -162,7 +178,7 @@ Game.getHistogram=function(str) {
         }
     }
     return hist;
-}
+};
 
 // Check if subHist can be formed using letters from targetHist
 Game.isSubAnagram=function(subHist, targetHist) {
@@ -172,7 +188,7 @@ Game.isSubAnagram=function(subHist, targetHist) {
         }
     }
     return true;
-}
+};
 
 // Function to find all sub-anagrams of length >= minLength
 Game.getSubAnagrams=function(word, wordlist, minLength = 3) {
@@ -193,7 +209,7 @@ Game.getSubAnagrams=function(word, wordlist, minLength = 3) {
         }
         return Math.random() - 0.5; // Randomize order if lengths are identical
     });
-}
+};
 
 Game.prototype.shuffleBalls=function() {
 	var ballIndexes=[];
@@ -222,7 +238,7 @@ Game.prototype.shuffleBalls=function() {
 		);
 		this.balls[ballIndexes[i]].containerIndex=pegIndexes[i];		
 	}
-}
+};
 
 Game.prototype.clearBall=function() {
 
@@ -256,11 +272,11 @@ Game.prototype.clearBall=function() {
 			}
 		}
 	}
-}
+};
 
 Game.prototype.addMessage=function(msg) {
 	this.messages.push(msg);
-}
+};
 
 Game.prototype.enterBalls=function() {
 	
@@ -332,13 +348,13 @@ Game.prototype.enterBalls=function() {
 		this.clearBalls();
 	}
 
-}
+};
 
 Game.prototype.clearBalls=function() {
 	while(this.currentBoxIndex) {
 		this.clearBall();
 	}	
-}
+};
 
 Game.prototype.lastBalls=function() {
 	this.clearBalls();
@@ -350,7 +366,7 @@ Game.prototype.lastBalls=function() {
 		this.balls[j].isUsed=true;
 		this.currentBoxIndex++;
 	}	
-}
+};
 
 Game.prototype.timeTick=function() {
 	if(this.messages.length>0) {
@@ -373,7 +389,7 @@ Game.prototype.timeTick=function() {
 		}
 		this.currentTime++;
 	}
-}
+};
 
 Game.prototype.draw=function() {
 
@@ -404,12 +420,17 @@ Game.prototype.draw=function() {
 
 					if(this.loadedAssets.randword) this.randwords = this.loadedAssets.randword.trim().split(/\r\n|\n|\r/).map(word => word.toUpperCase());
 
+					if(this.loadedAssets.sono) this.sono = this.loadedAssets.sono;
+
 	                this.gameState = this.GameState.INIT;
 	            }
 		    }
 			break;
 
 		case this.GameState.INIT:
+
+			this.font = new Font("16px sono","left","top");
+			this.hud = new Font("16px sono","left","top");
 
 			this.word = this.randwords[rnd(this.randwords.length)].trim();
 			this.shuffledWord = shuffleString(this.word);
@@ -553,16 +574,14 @@ Game.prototype.draw=function() {
 				}
 			}
 
-			if(this.messages.length==0) {
-				this.hud.fillText(this.ctx, "GAME OVER", (this.canvas.width-9*10)/2, this.canvas.height-16*10-4, palette[12]);
-			}
-
 			if(this.messageRemainingSeconds>0) {
 				var messages=this.message.split("\n");
 				for(var i=0;i<messages.length;i++) {
 					this.hud.fillText(this.ctx,this.message, 4, i*16+52, palette[12]);
 				}
 			}
+
+			this.hud.fillText(this.ctx, "GAME OVER", (this.canvas.width-9*10)/2, this.canvas.height-16*10-4, palette[12]);
 
 			for(var i=0;i<this.boxes.length;i++) {
 				this.boxes[i].draw(this.ctx);
@@ -592,7 +611,7 @@ Game.prototype.draw=function() {
 	}
 
 	window.requestAnimationFrame(function(){self.draw()});
-}
+};
 
 window.onload=function() {
 	var game = new Game("canvas");
@@ -606,5 +625,5 @@ window.onload=function() {
 	window.requestAnimationFrame(function() {
 	    game.draw();
 	});
-}
+};
 
