@@ -533,6 +533,8 @@ Game.prototype.draw=function() {
 				}
 			}
 
+			this.gameState=this.GameState.END;
+
 		    break;
 
 		case this.GameState.END:
@@ -554,7 +556,7 @@ Game.prototype.draw=function() {
 			}
 
 			if(this.messages.length==0) {
-				this.hud.fillText(this.ctx, "GAME OVER", 4, 52, palette[12]);
+				this.hud.fillText(this.ctx, "GAME OVER", (this.canvas.width-9*10)/2, this.canvas.height-16*10-4, palette[12]);
 			}
 
 			if(this.messageRemainingSeconds>0) {
