@@ -556,12 +556,6 @@ Game.prototype.draw=function() {
 
 			this.hud.fillText(this.ctx, "ROUND " + this.round.toString().padStart(7, " "), 4, 36, palette[12]);
 
-			if(this.messages.length>0) {
-				for(var i=0;i<this.messages.length;i++) {
-					this.hud.fillText(this.ctx,this.messages[i], 4, i*16+52, palette[12]);
-				}
-			}
-
 			for(var i=0;i<this.boxes.length;i++) {
 				this.boxes[i].draw(this.ctx);
 			}
@@ -599,6 +593,12 @@ Game.prototype.draw=function() {
 			}
 
 			this.displaySubAnagrams(false);
+
+			if(this.messages.length>0) {
+				for(var i=0;i<this.messages.length;i++) {
+					this.hud.fillText(this.ctx,this.messages[i], 4, i*16+52, palette[2]);
+				}
+			}
 
 		    break;
 
