@@ -432,232 +432,223 @@ Game.prototype.displaySubAnagrams=function(show) {
 	}
 }
 
-Game.prototype.draw=function() {
+Game.prototype.doPreload=function() {
+	var diff = this.targetProgress - this.currentProgress;
+	this.currentProgress += diff * 0.15;
 
-	var self=this;
-
-	switch(this.gameState) {
-
-		case this.GameState.PRELOAD:
-	        var diff = this.targetProgress - this.currentProgress;
-	        this.currentProgress += diff * 0.15;
-
-	        if (this.itemsLoaded >= this.totalItems && (this.targetProgress - this.currentProgress < 0.01 || this.currentProgress > 0.99)) {
-	            this.currentProgress = 1.0;
-	        }
-
-	        this.drawProgressBar(this.currentProgress);
-
-	        if (this.currentProgress === 1.0) {
-	            var now = performance.now();
-	            if (!this.preloadCompleteTime) {
-	                this.preloadCompleteTime = now;
-	            }
-
-	            var delayMs = 300; 
-	            if (now - this.preloadCompleteTime >= delayMs) {
-
-					if(this.loadedAssets.wordlist) this.wordlists = this.loadedAssets.wordlist.trim().split(/\r\n|\n|\r/).map(word => word.toUpperCase());
-
-					if(this.loadedAssets.randword) this.randwords = this.loadedAssets.randword.trim().split(/\r\n|\n|\r/).map(word => word.toUpperCase());
-
-					if(this.loadedAssets.sono) this.sono = this.loadedAssets.sono;
-
-					if(this.loadedAssets.pressstart) this.pressstart = this.loadedAssets.pressstart;
-
-	                this.gameState = this.GameState.INIT;
-	            }
-		    }
-			break;
-
-		case this.GameState.INIT:
-
-			this.font = new Font("16px sono","left","top");
-			this.hud = new Font("16px sono","left","top");
-			this.display = new Font("8px pressstart","left","top");
-
-			this.word = this.randwords[rnd(this.randwords.length)].trim();
-			this.shuffledWord = shuffleString(this.word);
-			this.subAnagrams = Game.getSubAnagrams(this.word, this.wordlists, 3);			this.numWordsLeft=this.subAnagrams.length;
-			
-			this.guessed=[];
-			for(var i=0;i<this.subAnagrams.length;i++) {
-				this.guessed.push(false);
-			}
-			
-			this.diameter = 32+6;
-			this.gap = 4;
-			this.ballFont=new Font(Math.floor(this.diameter/2)+"px sono","center","middle");
-
-			this.cx = (this.canvas.width-this.word.length*(this.diameter+this.gap))/2+(this.diameter+this.gap)/2;
-
-			this.cy = this.canvas.height-80;
-
-			this.boxes=[];
-			for(var i=0;i<this.shuffledWord.length;i++) {
-				this.boxes.push(new Box(
-					i*(this.diameter+this.gap)+this.cx,
-					this.cy-(this.diameter+this.gap),
-					this.diameter
-				));
-			}
-
-			this.pegs=[];
-			for(var i=0;i<this.shuffledWord.length;i++) {
-				this.pegs.push(new Peg(
-					i*(this.diameter+this.gap)+this.cx,
-					this.cy,
-					this.diameter/2
-				));
-			}
-
-			this.balls=[];
-			for(var i=0;i<this.shuffledWord.length;i++) {
-				this.balls.push(new Ball(this.ballFont,
-					this.shuffledWord[i],i*(this.diameter+this.gap)+this.cx,
-					this.cy,
-					this.diameter-8
-				));
-				this.balls[i].isUsed=false;
-				this.balls[i].containerIndex=i;
-			}
-
-			this.diameter=32;
-			this.gap=16;
-			this.cx = (canvas.width-4*(this.diameter+this.gap))/2;
-			this.cy = this.canvas.height-this.diameter-this.gap;
-
-			this.buttons=[];
-
-			this.buttons.push(new Button(this.loadedAssets.circle,0*(this.diameter+this.gap)+this.cx,this.cy,this.diameter,this.diameter));
-
-			this.buttons.push(new Button(this.loadedAssets.triangle,1*(this.diameter+this.gap)+this.cx,this.cy,this.diameter,this.diameter));
-
-			this.buttons.push(new Button(this.loadedAssets.cross,2*(this.diameter+this.gap)+this.cx,this.cy,this.diameter,this.diameter));
-
-			this.buttons.push(new Button(this.loadedAssets.square,3*(this.diameter+this.gap)+this.cx,this.cy,this.diameter,this.diameter));
-
-			this.currentTime=0;
-			this.remainingTime=0;
-
-			this.gameState=this.GameState.PLAY;
-
-			break;
-
-		case this.GameState.PLAY:
-
-			Graphics.clrscr(this.ctx,palette[10]);
-
-			this.hud.fillText(this.ctx,"SCORE "+this.score.toString().padStart(7," "),4,4,palette[12]);
-
-			var minutes = Math.floor(this.remainingTime / 60).toString().padStart(2, " ");
-			var seconds = (this.remainingTime % 60).toString().padStart(2, "0");
-			this.hud.fillText(this.ctx, "TIME  " + (minutes + ":" + seconds).padStart(7, " "), 4, 20, palette[12]);
-
-			this.hud.fillText(this.ctx, "ROUND " + this.round.toString().padStart(7, " "), 4, 36, palette[12]);
-
-			for(var i=0;i<this.boxes.length;i++) {
-				this.boxes[i].draw(this.ctx);
-			}
-
-			for(var i=0;i<this.pegs.length;i++) {
-				this.pegs[i].draw(this.ctx);
-			}
-
-			for(var i=0;i<this.balls.length;i++) {
-				this.balls[i].handleEvents(pointer);
-				this.balls[i].update();
-				this.balls[i].draw(this.ctx);
-
-				if(this.balls[i].isClicked && !this.balls[i].isUsed) {
-					this.balls[i].moveTo(
-						this.boxes[this.currentBoxIndex].x,
-						this.boxes[this.currentBoxIndex].y
-					);
-					this.balls[i].isUsed=true;
-					this.balls[i].containerIndex=this.currentBoxIndex;
-					this.currentBoxIndex++;
-				}
-			}
-
-			for(var i=0;i<this.buttons.length;i++) {
-				this.buttons[i].handleEvents(pointer);
-				this.buttons[i].draw(this.ctx);
-
-				if(this.buttons[i].isClicked) {
-					if(i===0) this.shuffleBalls();
-					else if(i===1) this.enterBalls();
-					else if(i===2) this.clearBalls();
-					else if(i===3) this.lastBalls();
-				}
-			}
-
-			this.displaySubAnagrams(false);
-
-			if(this.messages.length>0) {
-				for(var i=0;i<this.messages.length;i++) {
-					this.hud.fillText(this.ctx,this.messages[i], 4, i*16+52, palette[2]);
-				}
-			}
-
-		    break;
-
-		case this.GameState.END:
-
-			Graphics.clrscr(this.ctx,palette[10]);
-
-			this.hud.fillText(this.ctx,"SCORE "+this.score.toString().padStart(7," "),4,4,palette[12]);
-
-			var minutes = Math.floor(this.remainingTime / 60).toString().padStart(2, " ");
-			var seconds = (this.remainingTime % 60).toString().padStart(2, "0");
-			this.hud.fillText(this.ctx, "TIME  " + (minutes + ":" + seconds).padStart(7, " "), 4, 20, palette[12]);
-
-			this.hud.fillText(this.ctx, "ROUND " + this.round.toString().padStart(7, " "), 4, 36, palette[12]);
-
-			if(this.messages.length>0) {
-				for(var i=0;i<this.messages.length;i++) {
-					this.hud.fillText(this.ctx,this.messages[i], 4, i*16+52, palette[12]);
-				}
-			}
-
-			if(this.messageRemainingSeconds>0) {
-				var messages=this.message.split("\n");
-				for(var i=0;i<messages.length;i++) {
-					this.hud.fillText(this.ctx,this.message, 4, i*16+52, palette[12]);
-				}
-			}
-
-			this.hud.fillText(this.ctx, "GAME OVER", (this.canvas.width-9*10)/2, this.canvas.height-16*10, palette[12]);
-
-			for(var i=0;i<this.boxes.length;i++) {
-				this.boxes[i].draw(this.ctx);
-			}
-
-			for(var i=0;i<this.pegs.length;i++) {
-				this.pegs[i].draw(this.ctx);
-			}
-
-			for(var i=0;i<this.balls.length;i++) {
-				this.balls[i].handleEvents(pointer);
-				this.balls[i].update();
-				this.balls[i].draw(this.ctx);
-			}
-
-			for(var i=0;i<this.buttons.length;i++) {
-				this.buttons[i].handleEvents(pointer);
-				this.buttons[i].draw(this.ctx);
-
-				if(this.buttons[i].isClicked) {
-				}
-			}
-
-			this.displaySubAnagrams(true);
-
-			break;
-
-		default: break;
+	if (this.itemsLoaded >= this.totalItems && (this.targetProgress - this.currentProgress < 0.01 || this.currentProgress > 0.99)) {
+		this.currentProgress = 1.0;
 	}
 
+	this.drawProgressBar(this.currentProgress);
+
+	if (this.currentProgress === 1.0) {
+		var now = performance.now();
+		if (!this.preloadCompleteTime) {
+		    this.preloadCompleteTime = now;
+		}
+
+		var delayMs = 300; 
+		if (now - this.preloadCompleteTime >= delayMs) {
+
+			if(this.loadedAssets.wordlist) this.wordlists = this.loadedAssets.wordlist.trim().split(/\r\n|\n|\r/).map(word => word.toUpperCase());
+
+			if(this.loadedAssets.randword) this.randwords = this.loadedAssets.randword.trim().split(/\r\n|\n|\r/).map(word => word.toUpperCase());
+
+			if(this.loadedAssets.sono) this.sono = this.loadedAssets.sono;
+
+			if(this.loadedAssets.pressstart) this.pressstart = this.loadedAssets.pressstart;
+
+		    this.gameState = this.GameState.INIT;
+		}
+	}
+}
+
+Game.prototype.doInit=function() {
+	this.font = new Font("16px sono","left","top");
+	this.hud = new Font("16px sono","left","top");
+	this.display = new Font("8px pressstart","left","top");
+
+	this.word = this.randwords[rnd(this.randwords.length)].trim();
+	this.shuffledWord = shuffleString(this.word);
+	this.subAnagrams = Game.getSubAnagrams(this.word, this.wordlists, 3);			this.numWordsLeft=this.subAnagrams.length;
+	
+	this.guessed=[];
+	for(var i=0;i<this.subAnagrams.length;i++) {
+		this.guessed.push(false);
+	}
+	
+	this.diameter = 32+6;
+	this.gap = 4;
+	this.ballFont=new Font(Math.floor(this.diameter/2)+"px sono","center","middle");
+
+	this.cx = (this.canvas.width-this.word.length*(this.diameter+this.gap))/2+(this.diameter+this.gap)/2;
+
+	this.cy = this.canvas.height-80;
+
+	this.boxes=[];
+	for(var i=0;i<this.shuffledWord.length;i++) {
+		this.boxes.push(new Box(
+			i*(this.diameter+this.gap)+this.cx,
+			this.cy-(this.diameter+this.gap),
+			this.diameter
+		));
+	}
+
+	this.pegs=[];
+	for(var i=0;i<this.shuffledWord.length;i++) {
+		this.pegs.push(new Peg(
+			i*(this.diameter+this.gap)+this.cx,
+			this.cy,
+			this.diameter/2
+		));
+	}
+
+	this.balls=[];
+	for(var i=0;i<this.shuffledWord.length;i++) {
+		this.balls.push(new Ball(this.ballFont,
+			this.shuffledWord[i],i*(this.diameter+this.gap)+this.cx,
+			this.cy,
+			this.diameter-8
+		));
+		this.balls[i].isUsed=false;
+		this.balls[i].containerIndex=i;
+	}
+
+	this.diameter=32;
+	this.gap=16;
+	this.cx = (canvas.width-4*(this.diameter+this.gap))/2;
+	this.cy = this.canvas.height-this.diameter-this.gap;
+
+	this.buttons=[];
+	this.buttons.push(new Button(this.loadedAssets.circle,0*(this.diameter+this.gap)+this.cx,this.cy,this.diameter,this.diameter));
+	this.buttons.push(new Button(this.loadedAssets.triangle,1*(this.diameter+this.gap)+this.cx,this.cy,this.diameter,this.diameter));
+	this.buttons.push(new Button(this.loadedAssets.cross,2*(this.diameter+this.gap)+this.cx,this.cy,this.diameter,this.diameter));
+	this.buttons.push(new Button(this.loadedAssets.square,3*(this.diameter+this.gap)+this.cx,this.cy,this.diameter,this.diameter));
+
+	this.currentTime=0;
+	this.remainingTime=0;
+
+	this.gameState=this.GameState.PLAY;
+}
+
+Game.prototype.doPlay=function() {
+	Graphics.clrscr(this.ctx,palette[10]);
+
+	this.hud.fillText(this.ctx,"SCORE "+this.score.toString().padStart(7," "),4,4,palette[12]);
+
+	var minutes = Math.floor(this.remainingTime / 60).toString().padStart(2, " ");
+	var seconds = (this.remainingTime % 60).toString().padStart(2, "0");
+	this.hud.fillText(this.ctx, "TIME  " + (minutes + ":" + seconds).padStart(7, " "), 4, 20, palette[12]);
+
+	this.hud.fillText(this.ctx, "ROUND " + this.round.toString().padStart(7, " "), 4, 36, palette[12]);
+
+	for(var i=0;i<this.boxes.length;i++) {
+		this.boxes[i].draw(this.ctx);
+	}
+
+	for(var i=0;i<this.pegs.length;i++) {
+		this.pegs[i].draw(this.ctx);
+	}
+
+	for(var i=0;i<this.balls.length;i++) {
+		this.balls[i].handleEvents(pointer);
+		this.balls[i].update();
+		this.balls[i].draw(this.ctx);
+
+		if(this.balls[i].isClicked && !this.balls[i].isUsed) {
+			this.balls[i].moveTo(
+				this.boxes[this.currentBoxIndex].x,
+				this.boxes[this.currentBoxIndex].y
+			);
+			this.balls[i].isUsed=true;
+			this.balls[i].containerIndex=this.currentBoxIndex;
+			this.currentBoxIndex++;
+		}
+	}
+
+	for(var i=0;i<this.buttons.length;i++) {
+		this.buttons[i].handleEvents(pointer);
+		this.buttons[i].draw(this.ctx);
+
+		if(this.buttons[i].isClicked) {
+			if(i===0) this.shuffleBalls();
+			else if(i===1) this.enterBalls();
+			else if(i===2) this.clearBalls();
+			else if(i===3) this.lastBalls();
+		}
+	}
+
+	this.displaySubAnagrams(false);
+
+	if(this.messages.length>0) {
+		for(var i=0;i<this.messages.length;i++) {
+			this.hud.fillText(this.ctx,this.messages[i], 4, i*16+52, palette[2]);
+		}
+	}
+
+}
+
+Game.prototype.doEnd=function() {
+	Graphics.clrscr(this.ctx,palette[10]);
+
+	this.hud.fillText(this.ctx,"SCORE "+this.score.toString().padStart(7," "),4,4,palette[12]);
+
+	var minutes = Math.floor(this.remainingTime / 60).toString().padStart(2, " ");
+	var seconds = (this.remainingTime % 60).toString().padStart(2, "0");
+	this.hud.fillText(this.ctx, "TIME  " + (minutes + ":" + seconds).padStart(7, " "), 4, 20, palette[12]);
+
+	this.hud.fillText(this.ctx, "ROUND " + this.round.toString().padStart(7, " "), 4, 36, palette[12]);
+
+	if(this.messages.length>0) {
+		for(var i=0;i<this.messages.length;i++) {
+			this.hud.fillText(this.ctx,this.messages[i], 4, i*16+52, palette[12]);
+		}
+	}
+
+	if(this.messageRemainingSeconds>0) {
+		var messages=this.message.split("\n");
+		for(var i=0;i<messages.length;i++) {
+			this.hud.fillText(this.ctx,this.message, 4, i*16+52, palette[12]);
+		}
+	}
+
+	this.hud.fillText(this.ctx, "GAME OVER", (this.canvas.width-9*10)/2, this.canvas.height-16*10, palette[12]);
+
+	for(var i=0;i<this.boxes.length;i++) {
+		this.boxes[i].draw(this.ctx);
+	}
+
+	for(var i=0;i<this.pegs.length;i++) {
+		this.pegs[i].draw(this.ctx);
+	}
+
+	for(var i=0;i<this.balls.length;i++) {
+		this.balls[i].handleEvents(pointer);
+		this.balls[i].update();
+		this.balls[i].draw(this.ctx);
+	}
+
+	for(var i=0;i<this.buttons.length;i++) {
+		this.buttons[i].handleEvents(pointer);
+		this.buttons[i].draw(this.ctx);
+
+		if(this.buttons[i].isClicked) {
+		}
+	}
+
+	this.displaySubAnagrams(true);
+}
+
+Game.prototype.draw=function() {
+	var self=this;
+	switch(this.gameState) {
+		case this.GameState.PRELOAD: this.doPreload(); break;
+		case this.GameState.INIT: this.doInit(); break;
+		case this.GameState.PLAY: this.doPlay(); break;
+		case this.GameState.END: this.doEnd(); break;
+		default: break;
+	}
 	window.requestAnimationFrame(function(){self.draw()});
 };
 
