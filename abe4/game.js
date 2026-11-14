@@ -169,13 +169,9 @@ Game.prototype.setup=function() {
 	this.preload();
 };
 
-Game.cleanStr=function(str) {
-    return str.replace(/[\r\n]+/g, "").trim().toLowerCase();
-};
-
 // Generate character frequency histogram
 Game.getHistogram=function(str) {
-    const cleaned = Game.cleanStr(str);
+    const cleaned = cleanString(str);
     const hist = {};
     for (let char of cleaned) {
         if (char >= 'a' && char <= 'z') {
@@ -199,7 +195,7 @@ Game.isSubAnagram=function(subHist, targetHist) {
 Game.getSubAnagrams=function(word, wordlist, minLength = 3) {
     const targetHist = Game.getHistogram(word);
     const matches = wordlist.filter(w => {
-        const cleaned = Game.cleanStr(w);
+        const cleaned = cleanString(w);
         if (cleaned.length < minLength) return false;
         return Game.isSubAnagram(Game.getHistogram(cleaned), targetHist);
     });

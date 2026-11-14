@@ -29,3 +29,6 @@ function ord(char) {
 	return char.codePointAt(0);
 }
 
+function cleanString(str) {
+    return str.replace(/[\r\n]+/g, "").trim().toLowerCase();
+}
