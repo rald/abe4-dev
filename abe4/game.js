@@ -16,6 +16,7 @@ Game = function(canvasId) {
 		{ id: 'triangle', type: 'image', src: 'assets/triangle.png' },
 		{ id: 'cross', type: 'image', src: 'assets/cross.png' },
 		{ id: 'square', type: 'image', src: 'assets/square.png' },
+		{ id: 'next', type: 'image', src: 'assets/next.png' },
 		{ id: 'sono', family: 'sono', type: 'font', src: 'assets/sono/web/Sono-Bold.woff2' },
 		{ id: 'pressstart', family: 'pressstart', type: 'font', src: "assets/PressStart2P/PressStart2P.ttf" }
 	];
@@ -64,6 +65,7 @@ Game = function(canvasId) {
 	this.pressstart=null;
 	this.hud=null;
 	this.display=null;
+	this.nextButton=null;
 };
 
 Game.prototype.drawProgressBar=function(percent) {
@@ -522,6 +524,8 @@ Game.prototype.doInit=function() {
 	this.buttons.push(new Button(this.loadedAssets.cross,2*(this.diameter+this.gap)+this.cx,this.cy,this.diameter,this.diameter));
 	this.buttons.push(new Button(this.loadedAssets.square,3*(this.diameter+this.gap)+this.cx,this.cy,this.diameter,this.diameter));
 
+	this.nextButton = new Button(this.loadedAssets.next,(this.canvas.width-128)/2,this.canvas.height-128-8-2,128,32);
+
 	this.currentTime=0;
 	this.remainingTime=0;
 
@@ -609,8 +613,6 @@ Game.prototype.doEnd=function() {
 		}
 	}
 
-	this.hud.fillText(this.ctx, "GAME OVER", (this.canvas.width-9*10)/2, this.canvas.height-16*10, palette[12]);
-
 	for(var i=0;i<this.boxes.length;i++) {
 		this.boxes[i].draw(this.ctx);
 	}
@@ -633,6 +635,17 @@ Game.prototype.doEnd=function() {
 		}
 	}
 
+	if(this.qualify) {
+		this.nextButton.handleEvents(pointer);	
+		this.nextButton.draw(this.ctx);
+		if(this.nextButton.isClicked) {
+			this.gameState=this.GameState.INIT;
+			this.round++;
+		}
+	} else {
+		this.hud.fillText(this.ctx, "GAME OVER", (this.canvas.width-9*10)/2, this.canvas.height-16*10, palette[12]);
+	}
+	
 	this.displaySubAnagrams(true);
 }
 

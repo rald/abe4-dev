@@ -1,4 +1,5 @@
 Button = function(img, x, y, w, h) {
+
 	this.ButtonState = {
 	    UP: "UP",
 		OVER: "OVER",
